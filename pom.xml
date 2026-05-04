@@ -59,7 +59,19 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-oci-genai-spring-boot-starter</artifactId>
             <version>${spring-ai.version}</version>
-            <optional>true</optional>
+        </dependency>
+        
+        <!-- OCI SDK -->
+        <dependency>
+            <groupId>com.oracle.oci.sdk</groupId>
+            <artifactId>oci-java-sdk-common</artifactId>
+            <version>3.49.0</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.oracle.oci.sdk</groupId>
+            <artifactId>oci-java-sdk-generativeaiinference</artifactId>
+            <version>3.49.0</version>
         </dependency>
         
         <!-- JavaParser -->
@@ -88,6 +100,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        
+        <!-- SLF4J for logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
     

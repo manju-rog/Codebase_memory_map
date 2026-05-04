@@ -27,19 +27,27 @@ server:
 # Application Configuration
 app:
   ai:
-    enabled: ${APP_AI_ENABLED:false}
+    enabled: true
   scanner:
     max-file-size-kb: 500
     temp-dir: ${java.io.tmpdir}/repolens
+  oci:
+    config-file: ./OCI_ApiKey/config
+    private-key-file: ./OCI_ApiKey/oracle_santosh.chandrashekar.k-Privatekey.pem
 
-# OCI Configuration (only used when AI is enabled)
-oci:
-  compartment-id: ${OCI_COMPARTMENT_ID:}
-  config-profile: ${OCI_CONFIG_PROFILE:DEFAULT}
-  endpoint: ${OCI_ENDPOINT:https://inference.generativeai.us-ashburn-1.oci.oraclecloud.com}
-  llama4-model-id: ${OCI_LLAMA4_MODEL_ID:}
-  gpt5-model-id: ${OCI_GPT5_MODEL_ID:}
-  embed-model-id: ${OCI_EMBED_MODEL_ID:}
+# OCI Configuration
+spring:
+  ai:
+    oci:
+      genai:
+        compartment-id: ocid1.compartment.oc1..aaaaaaaacqxr3j2qbhntidg2s32gb67lv7ydpbfkvcazqvnjfsaxj3vdxr7a
+        endpoint: https://inference.generativeai.us-ashburn-1.oci.oraclecloud.com
+        chat:
+          enabled: true
+          options:
+            model: ocid1.generativeaimodel.oc1.iad.amaaaaaask7dceyah6tjdejjashngznsylutuhhvufukzb2g2ls54g2flsfq
+            temperature: 0.3
+            max-tokens: 2000
 
 # Springdoc OpenAPI
 springdoc:
