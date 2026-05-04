@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bankdb
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+jwt:
+  secret: mySecretKey
+  expiration: 86400000
