@@ -1,6 +1,0 @@
-[DEFAULT]
-user=ocid1.user.oc1..aaaaaaaaxtx4frwvgmkqrtbvlrvugvvptf2ctt56us2wyhmrto24wp2qsakq
-fingerprint=56:aa:99:76:20:18:b4:db:61:6c:5f:ef:c3:9a:cc:a9
-tenancy=ocid1.tenancy.oc1..aaaaaaaaigt4utajpqlcw7ofsuz6m33bufl3nrem3kk6mhryzozdcyjfvtma
-region=us-ashburn-1
-key_file=c:\Users\Manjunath\Desktop\rag\OCI_ApiKey\oracle_santosh.chandrashekar.k-Privatekey.pem

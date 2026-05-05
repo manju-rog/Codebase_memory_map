@@ -42,3 +42,18 @@ build/
 *.bak
 *.swp
 *~.nib
+
+### OCI Credentials - DO NOT COMMIT ###
+OCI_ApiKey/*
+!OCI_ApiKey/config.example
+*.pem
+*-Privatekey.pem
+*_public.pem
+
+### Application Config with Secrets ###
+application-local.yml
+application-prod.yml
+
+### Test Outputs ###
+demo-response.json
+test-output.json

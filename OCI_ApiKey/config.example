@@ -1,0 +1,18 @@
+[DEFAULT]
+user=ocid1.user.oc1..YOUR_USER_OCID_HERE
+fingerprint=aa:bb:cc:dd:ee:ff:11:22:33:44:55:66:77:88:99:00
+tenancy=ocid1.tenancy.oc1..YOUR_TENANCY_OCID_HERE
+region=us-ashburn-1
+key_file=./OCI_ApiKey/your_private_key.pem
+
+# Instructions:
+# 1. Copy this file to 'config' (without .example)
+# 2. Replace YOUR_USER_OCID_HERE with your actual user OCID
+# 3. Replace YOUR_TENANCY_OCID_HERE with your actual tenancy OCID
+# 4. Replace the fingerprint with your API key fingerprint
+# 5. Update key_file path to point to your private key
+# 6. Place your private key (.pem file) in this directory
+#
+# Get these values from:
+# - Oracle Cloud Console → Profile Icon → User Settings
+# - API Keys section

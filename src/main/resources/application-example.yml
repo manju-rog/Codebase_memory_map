@@ -24,12 +24,18 @@ spring:
   ai:
     oci:
       genai:
-        compartment-id: ocid1.compartment.oc1..aaaaaaaacqxr3j2qbhntidg2s32gb67lv7ydpbfkvcazqvnjfsaxj3vdxr7a
+        # REPLACE WITH YOUR COMPARTMENT OCID
+        compartment-id: ocid1.compartment.oc1..YOUR_COMPARTMENT_OCID_HERE
         endpoint: https://inference.generativeai.us-ashburn-1.oci.oraclecloud.com
         chat:
           enabled: true
           options:
-            model: ocid1.generativeaimodel.oc1.iad.amaaaaaask7dceyah6tjdejjashngznsylutuhhvufukzb2g2ls54g2flsfq
+            # Choose your model:
+            # - openai.gpt-4.1 (GPT-4.1)
+            # - openai.gpt-3.5-turbo (GPT-3.5)
+            # - meta.llama-3.1-405b-instruct (Llama 3.1)
+            # - Or your custom model OCID
+            model: openai.gpt-4.1
             temperature: 0.3
             max-tokens: 2000
 
@@ -45,7 +51,7 @@ app:
     temp-dir: ${java.io.tmpdir}/repolens
   oci:
     config-file: ./OCI_ApiKey/config
-    private-key-file: ./OCI_ApiKey/oracle_santosh.chandrashekar.k-Privatekey.pem
+    private-key-file: ./OCI_ApiKey/your_private_key.pem
 
 # Springdoc OpenAPI
 springdoc:
@@ -64,3 +70,14 @@ spring:
 app:
   ai:
     enabled: true
+
+---
+# Instructions:
+# 1. Copy this file to 'application.yml' (if not exists)
+# 2. Replace YOUR_COMPARTMENT_OCID_HERE with your actual compartment OCID
+# 3. Update the model ID if using a different model
+# 4. Ensure OCI_ApiKey/config file exists with your credentials
+# 5. Place your private key in OCI_ApiKey/ directory
+#
+# Get compartment OCID from:
+# - Oracle Cloud Console → Identity & Security → Compartments

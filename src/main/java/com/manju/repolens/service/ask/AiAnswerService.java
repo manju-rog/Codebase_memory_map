@@ -4,16 +4,21 @@ import com.manju.repolens.config.AiConfig;
 import com.manju.repolens.dto.AskQuestionResponse;
 import com.manju.repolens.dto.AffectedFileResponse;
 import com.manju.repolens.dto.EvidenceResponse;
+import com.oracle.bmc.ConfigFileReader;
+import com.oracle.bmc.auth.AuthenticationDetailsProvider;
+import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
+import com.oracle.bmc.generativeaiinference.model.*;
+import com.oracle.bmc.generativeaiinference.requests.ChatRequest;
+import com.oracle.bmc.generativeaiinference.responses.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
@@ -22,12 +27,33 @@ public class AiAnswerService {
     private static final Logger log = LoggerFactory.getLogger(AiAnswerService.class);
     
     private final AiConfig aiConfig;
+    private final GenerativeAiInferenceClient aiClient;
+    private final String compartmentId;
+    private final String modelId;
     
-    @Autowired(required = false)
-    private ChatClient.Builder chatClientBuilder;
-    
-    public AiAnswerService(AiConfig aiConfig) {
+    public AiAnswerService(
+            AiConfig aiConfig,
+            @Value("${spring.ai.oci.genai.compartment-id}") String compartmentId,
+            @Value("${spring.ai.oci.genai.endpoint}") String endpoint,
+            @Value("${spring.ai.oci.genai.chat.options.model}") String modelId,
+            @Value("${app.oci.config-file}") String configFile) {
         this.aiConfig = aiConfig;
+        this.compartmentId = compartmentId;
+        this.modelId = modelId;
+        
+        try {
+            ConfigFileReader.ConfigFile config = ConfigFileReader.parse(configFile, "DEFAULT");
+            AuthenticationDetailsProvider provider = new ConfigFileAuthenticationDetailsProvider(config);
+            
+            this.aiClient = GenerativeAiInferenceClient.builder()
+                .endpoint(endpoint)
+                .build(provider);
+            
+            log.info("OCI GenAI client initialized successfully");
+        } catch (Exception e) {
+            log.error("Failed to initialize OCI GenAI client: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize OCI GenAI", e);
+        }
     }
     
     public AskQuestionResponse enhanceAnswer(
@@ -35,29 +61,56 @@ public class AiAnswerService {
             String graphContext,
             AskQuestionResponse fallbackAnswer) {
         
-        if (chatClientBuilder == null) {
-            log.warn("ChatClient not available, using fallback answer");
+        if (aiClient == null) {
+            log.warn("AI client not available, using fallback answer");
             return fallbackAnswer;
         }
         
         try {
             String prompt = buildPrompt(question, graphContext, fallbackAnswer);
             
-            ChatClient chatClient = chatClientBuilder.build();
+            // Create chat request
+            List<ChatContent> contentList = new ArrayList<>();
+            contentList.add(TextContent.builder().text(prompt).build());
             
-            String enhancedAnswer = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
+            List<Message> messages = new ArrayList<>();
+            messages.add(UserMessage.builder()
+                .content(contentList)
+                .build());
             
-            if (enhancedAnswer != null && !enhancedAnswer.isBlank()) {
-                return new AskQuestionResponse(
-                    enhancedAnswer.trim(),
-                    fallbackAnswer.confidence(),
-                    fallbackAnswer.evidence(),
-                    fallbackAnswer.affectedFiles(),
-                    fallbackAnswer.graphPathMermaid()
-                );
+            ChatDetails chatDetails = ChatDetails.builder()
+                .servingMode(OnDemandServingMode.builder()
+                    .modelId(modelId)
+                    .build())
+                .compartmentId(compartmentId)
+                .chatRequest(GenericChatRequest.builder()
+                    .messages(messages)
+                    .maxTokens(2000)
+                    .temperature(0.3)
+                    .build())
+                .build();
+            
+            ChatRequest request = ChatRequest.builder()
+                .chatDetails(chatDetails)
+                .build();
+            
+            ChatResponse response = aiClient.chat(request);
+            
+            if (response.getChatResult() != null && 
+                response.getChatResult().getChatResponse() != null) {
+                
+                String enhancedAnswer = extractAnswer(response.getChatResult().getChatResponse());
+                
+                if (enhancedAnswer != null && !enhancedAnswer.isBlank()) {
+                    log.info("Successfully enhanced answer with OCI GenAI");
+                    return new AskQuestionResponse(
+                        enhancedAnswer.trim(),
+                        fallbackAnswer.confidence(),
+                        fallbackAnswer.evidence(),
+                        fallbackAnswer.affectedFiles(),
+                        fallbackAnswer.graphPathMermaid()
+                    );
+                }
             }
             
         } catch (Exception e) {
@@ -65,6 +118,25 @@ public class AiAnswerService {
         }
         
         return fallbackAnswer;
+    }
+    
+    private String extractAnswer(BaseChatResponse chatResponse) {
+        if (chatResponse instanceof CohereChatResponse) {
+            CohereChatResponse cohereResponse = (CohereChatResponse) chatResponse;
+            return cohereResponse.getText();
+        } else if (chatResponse instanceof GenericChatResponse) {
+            GenericChatResponse genericResponse = (GenericChatResponse) chatResponse;
+            if (genericResponse.getChoices() != null && !genericResponse.getChoices().isEmpty()) {
+                ChatChoice choice = genericResponse.getChoices().get(0);
+                if (choice.getMessage() != null && choice.getMessage() instanceof AssistantMessage) {
+                    List<ChatContent> contents = ((AssistantMessage) choice.getMessage()).getContent();
+                    if (contents != null && !contents.isEmpty() && contents.get(0) instanceof TextContent) {
+                        return ((TextContent) contents.get(0)).getText();
+                    }
+                }
+            }
+        }
+        return null;
     }
     
     private String buildPrompt(String question, String graphContext, AskQuestionResponse fallbackAnswer) {

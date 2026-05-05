@@ -62,29 +62,46 @@ RepoLens AI solves this by creating an intelligent codebase map that answers que
 
 ### Prerequisites
 
-- Java 21
-- Maven 3.8+
-- Git
+- **Java 17 or higher** (Java 21 recommended)
+- **Maven 3.8+** (or use included Maven Wrapper)
+- **Git**
+- **OCI Account** (for AI features)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/manju-rog/Codebase_memory_map.git
-cd Codebase_memory_map
+git clone https://github.com/YOUR_USERNAME/repolens-ai.git
+cd repolens-ai
 
-# Build the project
-mvn clean install
+# Set JAVA_HOME (Windows)
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
+
+# Set JAVA_HOME (Linux/Mac)
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 # Run the application
-mvn spring-boot:run
+./run.bat      # Windows
+./run.sh       # Linux/Mac
 ```
 
 The application will start on `http://localhost:8080`
 
+### Quick Test
+
+```bash
+# Test the demo endpoint
+./test-demo.bat      # Windows
+./test-demo.sh       # Linux/Mac
+
+# Or manually
+curl "http://localhost:8080/api/demo/ask?question=Where+is+the+login+logic+implemented"
+```
+
 ### Access Points
 
-- **Dashboard**: http://localhost:8080/
+- **Main UI**: http://localhost:8080/
+- **Demo Endpoint**: http://localhost:8080/api/demo/ask
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **H2 Console**: http://localhost:8080/h2-console
 - **API Docs**: http://localhost:8080/api-docs
@@ -263,6 +280,50 @@ Try these questions after scanning the sample repository:
 
 5. **Which config controls JWT?**
    - Shows: SecurityConfig, JwtService, application.yml
+
+---
+
+## 🎬 Working Demo
+
+### Demo Endpoint: `/api/demo/ask`
+
+The demo endpoint analyzes the `test-program/` directory and provides AI-powered answers with visual graphs.
+
+**Test it now:**
+```bash
+curl "http://localhost:8080/api/demo/ask?question=Where+is+the+login+logic+implemented"
+```
+
+**Response includes:**
+- ✅ Comprehensive AI-generated explanation
+- ✅ Visual Mermaid graph showing relationships
+- ✅ Code structure breakdown
+- ✅ List of scanned files
+
+**Example Questions for Demo:**
+- "Where is the login logic implemented?"
+- "How does authentication work?"
+- "What classes are involved in login?"
+- "How is the token generated?"
+
+**Demo Files** (in `test-program/`):
+- `LoginService.java` - Main authentication logic
+- `UserRepository.java` - User data access
+- `TokenService.java` - JWT token generation
+- `User.java` - User entity
+- `LoginResponse.java` - Response object
+
+### UI Demo
+
+1. Open http://localhost:8080
+2. Type: "Where is the login logic implemented?"
+3. Press Enter
+4. See:
+   - Detailed AI explanation
+   - Visual graph with class relationships
+   - 95% confidence score
+
+---
 
 ## 🧪 Running Tests
 
