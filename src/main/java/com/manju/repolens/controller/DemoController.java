@@ -33,7 +33,7 @@ public class DemoController {
             result.put("graph", graphDescription);
             
             // Step 3: Generate Mermaid diagram
-            String mermaidGraph = generateMermaidGraph();
+            String mermaidGraph = generateMermaidGraph(codeFiles);
             result.put("mermaidGraph", mermaidGraph);
             
             // Step 4: Ask AI with context
@@ -112,20 +112,141 @@ public class DemoController {
         return graph.toString();
     }
     
-    private String generateMermaidGraph() {
+    private String generateMermaidGraph(Map<String, String> codeFiles) {
         StringBuilder mermaid = new StringBuilder();
         mermaid.append("graph TD\n");
-        mermaid.append("    A[LoginService] --> B[UserRepository]\n");
-        mermaid.append("    A --> C[TokenService]\n");
-        mermaid.append("    B --> D[User]\n");
-        mermaid.append("    C --> D\n");
-        mermaid.append("    A --> E[LoginResponse]\n");
-        mermaid.append("    \n");
-        mermaid.append("    style A fill:#6366f1,stroke:#4f46e5,color:#fff\n");
-        mermaid.append("    style B fill:#8b5cf6,stroke:#7c3aed,color:#fff\n");
-        mermaid.append("    style C fill:#8b5cf6,stroke:#7c3aed,color:#fff\n");
+        
+        // Extract classes and their dependencies
+        Map<String, Set<String>> dependencies = new HashMap<>();
+        Map<String, String> classColors = new HashMap<>();
+        
+        // First pass: identify all classes
+        for (Map.Entry<String, String> entry : codeFiles.entrySet()) {
+            String fileName = entry.getKey();
+            String content = entry.getValue();
+            String className = extractClassName(content);
+            
+            if (className != null) {
+                dependencies.putIfAbsent(className, new HashSet<>());
+                
+                // Assign colors based on class type
+                if (className.contains("Service")) {
+                    classColors.put(className, "#6366f1"); // Blue for services
+                } else if (className.contains("Repository")) {
+                    classColors.put(className, "#8b5cf6"); // Purple for repositories
+                } else if (className.contains("Controller")) {
+                    classColors.put(className, "#ec4899"); // Pink for controllers
+                } else if (className.contains("Response") || className.contains("Request")) {
+                    classColors.put(className, "#10b981"); // Green for DTOs
+                } else {
+                    classColors.put(className, "#f59e0b"); // Orange for entities/others
+                }
+            }
+        }
+        
+        // Second pass: extract dependencies
+        for (Map.Entry<String, String> entry : codeFiles.entrySet()) {
+            String content = entry.getValue();
+            String className = extractClassName(content);
+            
+            if (className != null) {
+                Set<String> deps = extractDependencies(content, dependencies.keySet());
+                dependencies.get(className).addAll(deps);
+            }
+        }
+        
+        // Generate Mermaid nodes and edges
+        int nodeId = 0;
+        Map<String, String> classToNodeId = new HashMap<>();
+        
+        // Create nodes
+        for (String className : dependencies.keySet()) {
+            String nodeIdStr = "N" + nodeId++;
+            classToNodeId.put(className, nodeIdStr);
+            mermaid.append("    ").append(nodeIdStr).append("[\"").append(className).append("\"]\n");
+        }
+        
+        // Create edges
+        for (Map.Entry<String, Set<String>> entry : dependencies.entrySet()) {
+            String fromClass = entry.getKey();
+            String fromNode = classToNodeId.get(fromClass);
+            
+            for (String toClass : entry.getValue()) {
+                String toNode = classToNodeId.get(toClass);
+                if (toNode != null) {
+                    mermaid.append("    ").append(fromNode).append(" --> ").append(toNode).append("\n");
+                }
+            }
+        }
+        
+        // Add styling
+        mermaid.append("\n");
+        for (Map.Entry<String, String> entry : classColors.entrySet()) {
+            String className = entry.getKey();
+            String color = entry.getValue();
+            String styleNodeId = classToNodeId.get(className);
+            if (styleNodeId != null) {
+                mermaid.append("    style ").append(styleNodeId)
+                       .append(" fill:").append(color)
+                       .append(",stroke:#333,color:#fff\n");
+            }
+        }
         
         return mermaid.toString();
+    }
+    
+    private String extractClassName(String content) {
+        if (content.contains("class ")) {
+            int start = content.indexOf("class ") + 6;
+            int end = content.indexOf("{", start);
+            if (end > start) {
+                String className = content.substring(start, end).trim();
+                // Remove "extends" or "implements" parts
+                if (className.contains(" ")) {
+                    className = className.split(" ")[0];
+                }
+                return className;
+            }
+        }
+        return null;
+    }
+    
+    private Set<String> extractDependencies(String content, Set<String> allClasses) {
+        Set<String> deps = new HashSet<>();
+        
+        // Look for private field declarations
+        String[] lines = content.split("\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("private ") && line.contains(";")) {
+                // Extract type from "private Type fieldName;"
+                String[] parts = line.split(" ");
+                if (parts.length >= 3) {
+                    String type = parts[1];
+                    // Remove generics if present
+                    if (type.contains("<")) {
+                        type = type.substring(0, type.indexOf("<"));
+                    }
+                    if (allClasses.contains(type)) {
+                        deps.add(type);
+                    }
+                }
+            }
+        }
+        
+        // Look for method return types and parameters
+        for (String line : lines) {
+            line = line.trim();
+            if (line.contains("public ") && line.contains("(")) {
+                for (String className : allClasses) {
+                    if (line.contains(className) && !line.contains("class " + className)) {
+                        deps.add(className);
+                    }
+                }
+            }
+        }
+        
+        return deps;
     }
     
     private String askAI(String question, String graphDescription, Map<String, String> codeFiles) throws Exception {
